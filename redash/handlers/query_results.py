@@ -259,10 +259,10 @@ class QueryResultResource(BaseResource):
         headers = {}
         self.add_cors_headers(headers)
 
-        if settings.ACCESS_CONTROL_REQUEST_METHOD:
+        if settings.ACCESS_CONTROL_REQUEST_METHODS:
             headers[
-                "Access-Control-Request-Method"
-            ] = settings.ACCESS_CONTROL_REQUEST_METHOD
+                "Access-Control-Request-Methods"
+            ] = settings.ACCESS_CONTROL_REQUEST_METHODS
 
         if settings.ACCESS_CONTROL_ALLOW_HEADERS:
             headers[
@@ -302,7 +302,7 @@ class QueryResultResource(BaseResource):
         if has_access(
             query, self.current_user, allow_executing_with_view_only_permissions
         ):
-            return run_query(
+            result = run_query(
                 query.parameterized,
                 parameter_values,
                 query.data_source,
@@ -310,6 +310,10 @@ class QueryResultResource(BaseResource):
                 should_apply_auto_limit,
                 max_age,
             )
+            headers = {"Content-Type": "application/json"}
+            if len(settings.ACCESS_CONTROL_ALLOW_ORIGIN) > 0:
+                self.add_cors_headers(headers)
+            return make_response(result, 200, headers)
         else:
             if not query.parameterized.is_safe:
                 if current_user.is_api_user():
