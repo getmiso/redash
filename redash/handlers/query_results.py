@@ -311,8 +311,7 @@ class QueryResultResource(BaseResource):
                 max_age,
             )
             headers = {"Content-Type": "application/json"}
-            if len(settings.ACCESS_CONTROL_ALLOW_ORIGIN) > 0:
-                self.add_cors_headers(headers)
+            self.add_cors_headers(headers)
             return make_response(result, 200, headers)
         else:
             if not query.parameterized.is_safe:
@@ -459,12 +458,26 @@ class QueryResultResource(BaseResource):
 
 
 class JobResource(BaseResource):
+    @staticmethod
+    def add_cors_headers(headers):
+        if "Origin" in request.headers:
+            origin = request.headers["Origin"]
+
+            if set(["*", origin]) & settings.ACCESS_CONTROL_ALLOW_ORIGIN:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = str(
+                    settings.ACCESS_CONTROL_ALLOW_CREDENTIALS
+                ).lower()
+
     def get(self, job_id, query_id=None):
         """
         Retrieve info about a running query job.
         """
+        headers = {"Content-Type": "application/json"}
+        self.add_cors_headers(headers)
         job = Job.fetch(job_id)
-        return serialize_job(job)
+        data = serialize_job(job)
+        return make_response(data, 200, headers)
 
     def delete(self, job_id):
         """
