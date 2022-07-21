@@ -372,13 +372,13 @@ class QueryResultResource(BaseResource):
                     self.current_org,
                 )
 
-            if (
-                query is not None
-                and query_result is not None
-                and self.current_user.is_api_user()
-            ):
-                if query.query_hash != query_result.query_hash:
-                    abort(404, message="No cached result found for this query.")
+            # if (
+            #     query is not None
+            #     and query_result is not None
+            #     and self.current_user.is_api_user()
+            # ):
+            #     if query.query_hash != query_result.query_hash:
+            #         abort(404, message="No cached result found for this query.")
 
         if query_result:
             require_access(query_result.data_source, self.current_user, view_only)
@@ -469,6 +469,7 @@ class JobResource(BaseResource):
                     settings.ACCESS_CONTROL_ALLOW_CREDENTIALS
                 ).lower()
 
+    @require_any_of_permission(("view_query", "execute_query"))
     def get(self, job_id, query_id=None):
         """
         Retrieve info about a running query job.
