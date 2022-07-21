@@ -1,0 +1,3 @@
+FROM redash/redash:10.0.0.b50363
+COPY redash/handlers/query_results.py redash/handlers/query_results.py
+COPY redash/settings/__init__.py redash/settings/__init__.py
