@@ -259,10 +259,10 @@ class QueryResultResource(BaseResource):
         headers = {}
         self.add_cors_headers(headers)
 
-        if settings.ACCESS_CONTROL_REQUEST_METHOD:
+        if settings.ACCESS_CONTROL_REQUEST_METHODS:
             headers[
-                "Access-Control-Request-Method"
-            ] = settings.ACCESS_CONTROL_REQUEST_METHOD
+                "Access-Control-Request-Methods"
+            ] = settings.ACCESS_CONTROL_REQUEST_METHODS
 
         if settings.ACCESS_CONTROL_ALLOW_HEADERS:
             headers[
@@ -302,7 +302,7 @@ class QueryResultResource(BaseResource):
         if has_access(
             query, self.current_user, allow_executing_with_view_only_permissions
         ):
-            return run_query(
+            result = run_query(
                 query.parameterized,
                 parameter_values,
                 query.data_source,
@@ -310,6 +310,9 @@ class QueryResultResource(BaseResource):
                 should_apply_auto_limit,
                 max_age,
             )
+            headers = {"Content-Type": "application/json"}
+            self.add_cors_headers(headers)
+            return make_response(result, 200, headers)
         else:
             if not query.parameterized.is_safe:
                 if current_user.is_api_user():
@@ -366,13 +369,13 @@ class QueryResultResource(BaseResource):
                     self.current_org,
                 )
 
-            if (
-                query is not None
-                and query_result is not None
-                and self.current_user.is_api_user()
-            ):
-                if query.query_hash != query_result.query_hash:
-                    abort(404, message="No cached result found for this query.")
+            # if (
+            #     query is not None
+            #     and query_result is not None
+            #     and self.current_user.is_api_user()
+            # ):
+            #     if query.query_hash != query_result.query_hash:
+            #         abort(404, message="No cached result found for this query.")
 
         if query_result:
             require_access(query_result.data_source, self.current_user, view_only)
@@ -452,12 +455,27 @@ class QueryResultResource(BaseResource):
 
 
 class JobResource(BaseResource):
+    @staticmethod
+    def add_cors_headers(headers):
+        if "Origin" in request.headers:
+            origin = request.headers["Origin"]
+
+            if set(["*", origin]) & settings.ACCESS_CONTROL_ALLOW_ORIGIN:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = str(
+                    settings.ACCESS_CONTROL_ALLOW_CREDENTIALS
+                ).lower()
+
+    @require_any_of_permission(("view_query", "execute_query"))
     def get(self, job_id, query_id=None):
         """
         Retrieve info about a running query job.
         """
+        headers = {"Content-Type": "application/json"}
+        self.add_cors_headers(headers)
         job = Job.fetch(job_id)
-        return serialize_job(job)
+        data = serialize_job(job)
+        return make_response(data, 200, headers)
 
     def delete(self, job_id):
         """

@@ -1,0 +1,95 @@
+version: "3.8"
+x-redash-service: &redash-service
+  image: redash/redash:10.0.0.b50363
+  env_file: .env
+
+x-server-deploy: &server-deploy
+  deploy:
+    resources:
+      limits:
+        memory: 2g
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 3
+    update_config:
+      failure_action: rollback
+      order: start-first
+
+x-worker-deploy: &worker-deploy
+  deploy:
+    resources:
+      limits:
+        memory: 1g
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 3
+    update_config:
+      failure_action: rollback
+      order: start-first
+
+x-logging: &logging
+  logging:
+    driver: awslogs
+    options:
+      awslogs-region: ap-northeast-2
+      awslogs-group: /miso/redash-sandbox
+      tag: '{{with split .Name "."}}{{printf "%s" (index . 0)}}{{end}}'
+
+services:
+  server:
+    <<: *redash-service
+    command: server
+    ports:
+      - "5000:5000"
+    environment:
+      REDASH_WEB_WORKERS: 4
+    <<: *server-deploy
+    <<: *logging
+
+  scheduler:
+    <<: *redash-service
+    command: scheduler
+    <<: *worker-deploy
+    <<: *logging
+
+  scheduled_worker:
+    <<: *redash-service
+    command: worker
+    environment:
+      QUEUES: "scheduled_queries schemas"
+      WORKERS_COUNT: 2
+    <<: *worker-deploy
+    <<: *logging
+
+  adhoc_worker:
+    <<: *redash-service
+    command: worker
+    environment:
+      QUEUES: "queries"
+      WORKERS_COUNT: 4
+    <<: *worker-deploy
+    <<: *logging
+
+  worker:
+    <<: *redash-service
+    command: worker
+    environment:
+      QUEUES: "periodic emails default"
+      WORKERS_COUNT: 1
+    <<: *worker-deploy
+    <<: *logging
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    deploy:
+      update_config:
+        failure_action: rollback
+    volumes:
+      - type: bind
+        source: ./nginx/conf.d
+        target: /etc/nginx/conf.d
+    <<: *logging
