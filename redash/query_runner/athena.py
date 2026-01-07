@@ -118,6 +118,7 @@ class Athena(BaseQueryRunner):
                 "s3_staging_dir",
                 "schema",
                 "work_group",
+                "connected_databases",
                 "cost_per_tb",
                 "result_reuse_enable",
                 "result_reuse_minutes",
