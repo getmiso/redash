@@ -327,9 +327,7 @@ class TestGlueSchema(TestCase):
 
     def test_connected_databases_filter(self):
         """Test filtering databases using connected_databases configuration"""
-        query_runner = Athena(
-            {"glue": True, "region": "mars-east-1", "connected_databases": "test1,test3"}
-        )
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "connected_databases": "test1,test3"})
 
         self.stubber.add_response(
             "get_databases",
@@ -388,9 +386,7 @@ class TestGlueSchema(TestCase):
 
     def test_connected_databases_with_spaces(self):
         """Test filtering databases with spaces in the comma-separated list"""
-        query_runner = Athena(
-            {"glue": True, "region": "mars-east-1", "connected_databases": " test1 , test2 "}
-        )
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "connected_databases": " test1 , test2 "})
 
         self.stubber.add_response(
             "get_databases",

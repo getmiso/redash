@@ -105,7 +105,14 @@ class Athena(BaseQueryRunner):
                 },
             },
             "required": ["region", "s3_staging_dir"],
-            "extra_options": ["glue", "catalog_ids", "connected_databases", "cost_per_tb", "result_reuse_enable", "result_reuse_minutes"],
+            "extra_options": [
+                "glue",
+                "catalog_ids",
+                "connected_databases",
+                "cost_per_tb",
+                "result_reuse_enable",
+                "result_reuse_minutes",
+            ],
             "order": [
                 "region",
                 "s3_staging_dir",
