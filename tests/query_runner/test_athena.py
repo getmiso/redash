@@ -324,3 +324,178 @@ class TestGlueSchema(TestCase):
                 {"columns": [{"name": "row_id", "type": "int"}], "name": "test1.jdbc_table"},
                 {"columns": [{"name": "row_id", "type": "int"}], "name": "test2.jdbc_table"},
             ]
+
+    def test_schema_databases_filter(self):
+        """Test filtering databases using schema_databases configuration"""
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": "test1,test3"})
+
+        self.stubber.add_response(
+            "get_databases",
+            {"DatabaseList": [{"Name": "test1"}, {"Name": "test2"}, {"Name": "test3"}]},
+            {},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table1",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col1", "Type": "string"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test1"},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table3",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col3", "Type": "int"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test3"},
+        )
+        with self.stubber:
+            schema = query_runner.get_schema()
+            assert len(schema) == 2
+            assert {"columns": [{"name": "col1", "type": "string"}], "name": "test1.table1"} in schema
+            assert {"columns": [{"name": "col3", "type": "int"}], "name": "test3.table3"} in schema
+            # test2 should be filtered out
+            assert not any("test2" in table["name"] for table in schema)
+
+    def test_schema_databases_with_spaces(self):
+        """Test filtering databases with spaces in the comma-separated list"""
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": " test1 , test2 "})
+
+        self.stubber.add_response(
+            "get_databases",
+            {"DatabaseList": [{"Name": "test1"}, {"Name": "test2"}, {"Name": "test3"}]},
+            {},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table1",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col1", "Type": "string"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test1"},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table2",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col2", "Type": "int"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test2"},
+        )
+        with self.stubber:
+            schema = query_runner.get_schema()
+            assert len(schema) == 2
+            assert {"columns": [{"name": "col1", "type": "string"}], "name": "test1.table1"} in schema
+            assert {"columns": [{"name": "col2", "type": "int"}], "name": "test2.table2"} in schema
+            # test3 should be filtered out
+            assert not any("test3" in table["name"] for table in schema)
+
+    def test_empty_schema_databases(self):
+        """Test that empty schema_databases returns all databases"""
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": ""})
+
+        self.stubber.add_response(
+            "get_databases",
+            {"DatabaseList": [{"Name": "test1"}, {"Name": "test2"}]},
+            {},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table1",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col1", "Type": "string"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test1"},
+        )
+        self.stubber.add_response(
+            "get_tables",
+            {
+                "TableList": [
+                    {
+                        "Name": "table2",
+                        "StorageDescriptor": {
+                            "Columns": [{"Name": "col2", "Type": "int"}],
+                            "Location": "s3://bucket/path",
+                            "Compressed": False,
+                            "NumberOfBuckets": 0,
+                            "SerdeInfo": {},
+                            "SortColumns": [],
+                            "StoredAsSubDirectories": False,
+                        },
+                        "PartitionKeys": [],
+                    }
+                ]
+            },
+            {"DatabaseName": "test2"},
+        )
+        with self.stubber:
+            schema = query_runner.get_schema()
+            assert len(schema) == 2
+            assert {"columns": [{"name": "col1", "type": "string"}], "name": "test1.table1"} in schema
+            assert {"columns": [{"name": "col2", "type": "int"}], "name": "test2.table2"} in schema
