@@ -325,9 +325,9 @@ class TestGlueSchema(TestCase):
                 {"columns": [{"name": "row_id", "type": "int"}], "name": "test2.jdbc_table"},
             ]
 
-    def test_connected_databases_filter(self):
-        """Test filtering databases using connected_databases configuration"""
-        query_runner = Athena({"glue": True, "region": "mars-east-1", "connected_databases": "test1,test3"})
+    def test_schema_databases_filter(self):
+        """Test filtering databases using schema_databases configuration"""
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": "test1,test3"})
 
         self.stubber.add_response(
             "get_databases",
@@ -384,9 +384,9 @@ class TestGlueSchema(TestCase):
             # test2 should be filtered out
             assert not any("test2" in table["name"] for table in schema)
 
-    def test_connected_databases_with_spaces(self):
+    def test_schema_databases_with_spaces(self):
         """Test filtering databases with spaces in the comma-separated list"""
-        query_runner = Athena({"glue": True, "region": "mars-east-1", "connected_databases": " test1 , test2 "})
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": " test1 , test2 "})
 
         self.stubber.add_response(
             "get_databases",
@@ -443,9 +443,9 @@ class TestGlueSchema(TestCase):
             # test3 should be filtered out
             assert not any("test3" in table["name"] for table in schema)
 
-    def test_empty_connected_databases(self):
-        """Test that empty connected_databases returns all databases"""
-        query_runner = Athena({"glue": True, "region": "mars-east-1", "connected_databases": ""})
+    def test_empty_schema_databases(self):
+        """Test that empty schema_databases returns all databases"""
+        query_runner = Athena({"glue": True, "region": "mars-east-1", "schema_databases": ""})
 
         self.stubber.add_response(
             "get_databases",

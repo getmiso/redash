@@ -80,9 +80,9 @@ class Athena(BaseQueryRunner):
                     "type": "string",
                     "title": "Enter Glue Data Catalog IDs, separated by commas (leave blank for default catalog)",
                 },
-                "connected_databases": {
+                "schema_databases": {
                     "type": "string",
-                    "title": "Connected databases (comma-separated, leave blank for all databases)",
+                    "title": "Schema databases (comma-separated, leave blank for all databases)",
                 },
                 "work_group": {
                     "type": "string",
@@ -108,7 +108,7 @@ class Athena(BaseQueryRunner):
             "extra_options": [
                 "glue",
                 "catalog_ids",
-                "connected_databases",
+                "schema_databases",
                 "cost_per_tb",
                 "result_reuse_enable",
                 "result_reuse_minutes",
@@ -118,7 +118,7 @@ class Athena(BaseQueryRunner):
                 "s3_staging_dir",
                 "schema",
                 "work_group",
-                "connected_databases",
+                "schema_databases",
                 "cost_per_tb",
                 "result_reuse_enable",
                 "result_reuse_minutes",
@@ -210,14 +210,14 @@ class Athena(BaseQueryRunner):
             **({"CatalogId": catalog_id} if catalog_id != "" else {}),
         )
 
-        # Get the list of connected databases if specified
-        connected_databases = self.configuration.get("connected_databases", "")
-        connected_databases_list = [db.strip() for db in connected_databases.split(",") if db.strip()]
+        # Get the list of schema databases if specified
+        schema_databases = self.configuration.get("schema_databases", "")
+        schema_databases_list = [db.strip() for db in schema_databases.split(",") if db.strip()]
 
         for databases in databases_iterator:
             for database in databases["DatabaseList"]:
-                # Skip this database if connected_databases is specified and this database is not in the list
-                if connected_databases_list and database["Name"] not in connected_databases_list:
+                # Skip this database if schema_databases is specified and this database is not in the list
+                if schema_databases_list and database["Name"] not in schema_databases_list:
                     continue
 
                 iterator = table_paginator.paginate(
